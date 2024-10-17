@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.widget.TextView
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -69,13 +70,29 @@ class LinkHandlerActivity : Activity() {
 
         val service = retrofit.create(PhishingDetectionService::class.java)
 
-        try {
+//        try {
+//            val response = service.checkUrl(API_KEY, url)
+//            return !response.unsafe
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//            // In case of an error, we'll assume the URL is unsafe
+//            return false
+//        }
+        return try {
             val response = service.checkUrl(API_KEY, url)
-            return !response.unsafe
+            //Log.d("LinkHandlerActivity", "API Response: $response")
+
+            if (response.success) {
+                // Consider the URL safe if it's not unsafe, suspicious, phishing, malware, or spamming
+                !(response.unsafe || response.suspicious || response.phishing || response.malware || response.spamming || response.adult)
+            } else {
+                // If the API call wasn't successful, assume it's unsafe
+                false
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
+            //Log.e("LinkHandlerActivity", "Error in API call", e)
             // In case of an error, we'll assume the URL is unsafe
-            return false
+            false
         }
     }
 
@@ -101,22 +118,31 @@ interface PhishingDetectionService {
 }
 
 data class PhishingCheckResponse(
+    val message: String,
+    val success: Boolean,
     val unsafe: Boolean,
     val domain: String,
-    val ip_address: String,
+    @SerializedName("root_domain") val rootDomain: String,
+    @SerializedName("ip_address") val ipAddress: String,
+    @SerializedName("country_code") val countryCode: String,
+    @SerializedName("language_code") val languageCode: String,
     val server: String,
-    val content_type: String,
-    val status_code: Int,
-    val page_size: Int,
-    val domain_rank: Int,
-    val dns_valid: Boolean,
+    @SerializedName("content_type") val contentType: String,
+    @SerializedName("status_code") val statusCode: Int,
+    @SerializedName("page_size") val pageSize: Int,
+    @SerializedName("domain_rank") val domainRank: Int,
+    @SerializedName("dns_valid") val dnsValid: Boolean,
     val parking: Boolean,
     val spamming: Boolean,
     val malware: Boolean,
     val phishing: Boolean,
     val suspicious: Boolean,
+    @SerializedName("domain_trust") val domainTrust: String,
     val adult: Boolean,
-    val risk_score: Int
+    @SerializedName("risk_score") val riskScore: Int,
+    val category: String,
+    val redirected: Boolean,
+    @SerializedName("request_id") val requestId: String
 )
 
 
